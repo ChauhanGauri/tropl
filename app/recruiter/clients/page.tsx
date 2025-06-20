@@ -8,9 +8,26 @@ import { ClientsActions } from "@/components/clients/ClientsActions";
 
 export default function ClientsPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [searchParams, setSearchParams] = useState<{
+    name?: string;
+    phone?: string;
+    contactPerson?: string;
+  }>({});
 
   const handleClientAdded = () => {
     setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleSearch = (params: {
+    name?: string;
+    phone?: string;
+    contactPerson?: string;
+  }) => {
+    setSearchParams(params);
+  };
+
+  const handleReset = () => {
+    setSearchParams({});
   };
 
   return (
@@ -24,8 +41,10 @@ export default function ClientsPage() {
               <ClientsActions onClientAdded={handleClientAdded} />
             </div>
 
-            <ClientsFilters />
-            <ClientsTable refreshTrigger={refreshTrigger} />
+            <ClientsFilters onSearch={handleSearch} onReset={handleReset} />            <ClientsTable 
+              refreshTrigger={refreshTrigger} 
+              searchParams={searchParams}
+            />
           </div>
         </main>
       </div>

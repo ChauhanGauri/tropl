@@ -44,31 +44,24 @@ const menuItems = [
     title: "Job Seekers",
     href: "/recruiter/job-seekers",
     icon: Users,
-    color: "text-orange-400",
-  },
+    color: "text-orange-400",  },
   {
     title: "Clients",
     href: "/recruiter/clients",
     icon: Building2,
     color: "text-orange-500",
-  },
-  {
-    title: "Vendors",
-    href: "/recruiter/vendors",
-    icon: Building2,
-    color: "text-orange-400",
-  },
+  },  // Temporarily hidden - Vendor functionality not needed
+  // {
+  //   title: "Vendors",
+  //   href: "/recruiter/vendors",
+  //   icon: Building2,
+  //   color: "text-orange-400",
+  // },
   {
     title: "Jobs",
     href: "/recruiter/jobs",
     icon: Briefcase,
     color: "text-orange-500",
-  },
-  {
-    title: "Bench Sales",
-    href: "/recruiter/bench-sales",
-    icon: BarChart3,
-    color: "text-orange-400",
   },
   {
     title: "Messages",

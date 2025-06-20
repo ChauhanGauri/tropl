@@ -41,13 +41,16 @@ export const updateCandidateSchema = createCandidateSchema.partial()
 // Client validation schemas
 export const createClientSchema = z.object({
   name: z.string().min(1, 'Company name is required'),
-  contactPerson: z.string().min(1, 'Contact person is required'),
-  email: z.string().email('Invalid email format'),
-  phone: z.string().optional(),
+  gstin: z.string().optional(),
   address: z.string().optional(),
+  country: z.string().optional(),
+  state: z.string().optional(),
+  city: z.string().optional(),
+  pincode: z.string().optional(),
+  contactPerson: z.string().min(1, 'Contact person is required'),
+  email: z.string().email('Invalid email format'),  phone: z.string().optional(),
   website: z.string().url().optional().or(z.literal('')),
-  industry: z.string().optional(),
-  companySize: z.string().optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE']).default('ACTIVE'),
   notes: z.string().optional(),
 })
 

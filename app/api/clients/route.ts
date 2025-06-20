@@ -12,23 +12,43 @@ export async function GET(request: NextRequest) {
 
     const where: any = {}
     
-    // Add search functionality
-    if (query) {
+    // Handle specific field searches
+    const searchName = searchParams.get('searchName')
+    const searchPhone = searchParams.get('searchPhone')
+    const searchContactPerson = searchParams.get('searchContactPerson')
+    
+    if (searchName || searchPhone || searchContactPerson) {
+      const searchConditions = []
+      
+      if (searchName) {
+        searchConditions.push({ name: { contains: searchName, mode: 'insensitive' } })
+      }
+      
+      if (searchPhone) {
+        searchConditions.push({ phone: { equals: searchPhone } })
+      }
+      
+      if (searchContactPerson) {
+        searchConditions.push({ contactPerson: { contains: searchContactPerson, mode: 'insensitive' } })
+      }
+      
+      if (searchConditions.length > 0) {
+        where.AND = searchConditions
+      }
+    }
+    
+    // Add general search functionality (fallback)
+    if (query && !searchName && !searchPhone && !searchContactPerson) {
       where.OR = [
         { name: { contains: query, mode: 'insensitive' } },
         { contactPerson: { contains: query, mode: 'insensitive' } },
         { email: { contains: query, mode: 'insensitive' } },
-        { industry: { contains: query, mode: 'insensitive' } },
       ]
     }
 
     // Add filters
-    if (filters) {
-      if (filters.status) {
+    if (filters) {      if (filters.status) {
         where.status = filters.status
-      }
-      if (filters.industry) {
-        where.industry = { contains: filters.industry, mode: 'insensitive' }
       }
     }
 

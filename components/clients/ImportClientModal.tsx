@@ -41,11 +41,7 @@ export function ImportClientModal({ open, onOpenChange }: ImportClientModalProps
             </div>
           </div>
 
-          <div className="text-sm text-gray-500">
-            <a href="#" className="text-blue-600 hover:underline">
-              Download sample file
-            </a>
-          </div>
+          
         </div>
 
         <div className="flex justify-end space-x-2 mt-6">

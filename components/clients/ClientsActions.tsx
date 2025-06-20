@@ -13,10 +13,9 @@ export function ClientsActions({ onClientAdded }: ClientsActionsProps) {
   const [showImportModal, setShowImportModal] = useState(false);
 
   return (
-    <div className="flex justify-end space-x-4">
-      <Button
+    <div className="flex justify-end space-x-4">      <Button
         variant="outline"
-        className="bg-green-600 text-white hover:bg-green-700"
+        className="bg-green-600 text-white hover:bg-green-700 hover:text-gray-100"
         onClick={() => setShowImportModal(true)}
       >
         <Upload className="w-4 h-4 mr-2" />
@@ -24,7 +23,7 @@ export function ClientsActions({ onClientAdded }: ClientsActionsProps) {
       </Button>
       <Button
         variant="outline"
-        className="bg-green-600 text-white hover:bg-green-700"
+        className="bg-green-600 text-white hover:bg-green-700 hover:text-gray-100"
         onClick={() => setShowAddModal(true)}
       >
         <Plus className="w-4 h-4 mr-2" />

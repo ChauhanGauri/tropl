@@ -85,13 +85,16 @@ model Candidate {
 model Client {
   id              String        @id @default(auto()) @map("_id") @db.ObjectId
   name            String
+  gstin           String?
+  address         String?
+  country         String?
+  state           String?
+  city            String?
+  pincode         String?
   contactPerson   String
   email           String        @unique
   phone           String?
-  address         String?
   website         String?
-  industry        String?
-  companySize     String?
   status          ClientStatus  @default(ACTIVE)
   notes           String?
   createdAt       DateTime      @default(now())
