@@ -23,17 +23,41 @@ export const createUserSchema = z.object({
 // Candidate validation schemas
 export const createCandidateSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
+  middleName: z.string().optional(),
   lastName: z.string().min(1, 'Last name is required'),
+  dateOfBirth: z.string().optional().transform(val => val ? new Date(val) : undefined),
+  gender: z.string().optional(),
+  country: z.string().optional(),
+  state: z.string().optional(),
+  city: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  linkedin: z.string().optional(),
+  github: z.string().optional(),
   jobTitle: z.string().optional(),
   experience: z.number().min(0).optional(),
   expectedSalary: z.number().min(0).optional(),
   currentSalary: z.number().min(0).optional(),
+  noticePeriod: z.string().optional(),
   location: z.string().optional(),
+  willingToRelocate: z.boolean().optional(),
   skills: z.array(z.string()).default([]),
   availability: z.enum(['AVAILABLE', 'NOTICE_PERIOD', 'NOT_AVAILABLE']).default('AVAILABLE'),
   profileSummary: z.string().optional(),
   education: z.any().optional(),
   workExperience: z.any().optional(),
+  // ID Information
+  aadhaarNumber: z.string().optional(),
+  panNumber: z.string().optional(),
+  uanNumber: z.string().optional(),
+  // Employer Info
+  employerName: z.string().optional(),
+  recruiterName: z.string().optional(),
+  recruiterEmail: z.string().optional(),
+  recruiterContact: z.string().optional(),
+  // File URLs (will be handled separately)
+  resumeUrl: z.string().optional(),
+  idDocumentUrl: z.string().optional(),
 })
 
 export const updateCandidateSchema = createCandidateSchema.partial()
@@ -148,6 +172,9 @@ export const paginationSchema = z.object({
 export const searchSchema = z.object({
   query: z.string().optional(),
   filters: z.record(z.any()).optional(),
+  jobTitle: z.string().optional(),
+  skills: z.string().optional(),
+  location: z.string().optional(),
 })
 
 // Combine pagination with search

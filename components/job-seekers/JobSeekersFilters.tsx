@@ -1,83 +1,93 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, X, Sparkles } from "lucide-react";
+import { Search, RotateCcw } from "lucide-react";
+import { useState } from "react";
 
-export function JobSeekersFilters() {
+interface JobSeekersFiltersProps {
+  onSearch: (searchParams: {
+    name?: string;
+    jobTitle?: string;
+    skills?: string;
+    location?: string;
+  }) => void;
+  onReset: () => void;
+}
+
+export function JobSeekersFilters({ onSearch, onReset }: JobSeekersFiltersProps) {
+  const [searchName, setSearchName] = useState('');
+  const [searchJobTitle, setSearchJobTitle] = useState('');
+  const [searchSkills, setSearchSkills] = useState('');
+  const [searchLocation, setSearchLocation] = useState('');
+
+  const handleSearch = () => {
+    const searchParams: any = {};
+    if (searchName.trim()) searchParams.name = searchName.trim();
+    if (searchJobTitle.trim()) searchParams.jobTitle = searchJobTitle.trim();
+    if (searchSkills.trim()) searchParams.skills = searchSkills.trim();
+    if (searchLocation.trim()) searchParams.location = searchLocation.trim();
+    
+    onSearch(searchParams);
+  };
+
+  const handleReset = () => {
+    setSearchName('');
+    setSearchJobTitle('');
+    setSearchSkills('');
+    setSearchLocation('');
+    onReset();
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Name/Email Search */}
-        <div className="relative">
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
           <Input
             placeholder="Search name/email"
-            className="pl-9 pr-8"
+            value={searchName}
+            onChange={(e) => setSearchName(e.target.value)}
+            onKeyPress={handleKeyPress}
           />
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-1 top-1 h-7 w-7 text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
-
-        {/* Job Title Search */}
-        <div className="relative">
+        <div className="flex-1">
           <Input
             placeholder="Job title"
-            className="pl-9 pr-8"
+            value={searchJobTitle}
+            onChange={(e) => setSearchJobTitle(e.target.value)}
+            onKeyPress={handleKeyPress}
           />
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-1 top-1 h-7 w-7 text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
-
-        {/* Skills Search */}
-        <div className="relative">
+        <div className="flex-1">
           <Input
             placeholder="Skills"
-            className="pl-9 pr-8"
+            value={searchSkills}
+            onChange={(e) => setSearchSkills(e.target.value)}
+            onKeyPress={handleKeyPress}
           />
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-1 top-1 h-7 w-7 text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
-
-        {/* Location Search */}
-        <div className="relative">
+        <div className="flex-1">
           <Input
             placeholder="Location"
-            className="pl-9 pr-16"
+            value={searchLocation}
+            onChange={(e) => setSearchLocation(e.target.value)}
+            onKeyPress={handleKeyPress}
           />
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-8 top-1 h-7 w-7 text-gray-400 hover:text-gray-600"
-            aria-label="Search by location"
-          >
-            <Search className="h-4 w-4" />
+        </div>
+        <div className="flex gap-2">
+          <Button className="flex items-center" onClick={handleSearch}>
+            <Search className="w-4 h-4 mr-2" />
+            Search
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-1 top-1 h-7 w-7 text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-4 w-4" />
+          <Button variant="outline" className="flex items-center" onClick={handleReset}>
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reset
           </Button>
         </div>
       </div>
     </div>
   );
-} 
+}

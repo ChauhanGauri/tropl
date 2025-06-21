@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -9,39 +9,68 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Mail, Phone, MessageSquare, Eye, Pencil, Calendar as CalendarIcon, Trash2, CheckSquare, Square } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { format, addDays } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
+import { CandidateDetailsModal } from "./CandidateDetailsModal";
+import { EditCandidateModal } from "./EditCandidateModal";
 
-const jobSeekers = [
-  {
-    id: 1,
-    name: "John Smith",
-    email: "john.smith@email.com",
-    phone: "+1 234-567-8901",
-    jobTitle: "Senior Developer",
-    skills: ["React", "Node.js", "TypeScript", "AWS", "Docker"],
-    location: "New York, NY",
-    availability: "Available"
-  },
-  {
-    id: 2,
-    name: "Sarah Johnson",
-    email: "sarah.j@email.com",
-    phone: "+1 234-567-8902",
-    jobTitle: "Product Manager",
-    skills: ["Product Strategy", "Agile", "User Research", "Data Analysis"],
-    location: "San Francisco, CA",
-    availability: "Notice Period"
-  },
-  // Add more sample data as needed
-];
+interface JobSeeker {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  jobTitle?: string;
+  skills: string[];
+  location?: string;
+  availability: string;
+  experience?: number;
+  user?: {
+    email: string;
+    phone?: string;
+  };
+}
 
-export function JobSeekersTable() {
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+interface JobSeekersTableProps {
+  refresh?: number;
+  searchParams?: {
+    name?: string;
+    jobTitle?: string;
+    skills?: string;
+    location?: string;
+  };
+}
+
+export function JobSeekersTable({ refresh, searchParams }: JobSeekersTableProps) {
+  const { toast } = useToast();  const { token, user } = useAuth();
+  const [jobSeekers, setJobSeekers] = useState<JobSeeker[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
+  // Modal states
+  const [viewCandidate, setViewCandidate] = useState<JobSeeker | null>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [editCandidate, setEditCandidate] = useState<JobSeeker | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
   const [shareType, setShareType] = useState<string[]>([]);
@@ -54,6 +83,129 @@ export function JobSeekersTable() {
   const [jobCategory, setJobCategory] = useState("all");
   const [jobStatus, setJobStatus] = useState("all");
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  // Fetch job seekers data
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  useEffect(() => {
+    if (isClient) {
+      fetchJobSeekers();
+    }
+  }, [refresh, isClient, token, searchParams]);  const fetchJobSeekers = async () => {
+    try {
+      setLoading(true);
+      
+      if (!token) {
+        toast({
+          title: "Authentication Required",
+          description: "Please login to view job seekers.",
+          variant: "destructive"
+        });
+        setJobSeekers([]);
+        return;
+      }
+
+      // Build query string from search parameters
+      const queryParams = new URLSearchParams();
+      if (searchParams?.name) queryParams.append('query', searchParams.name);
+      if (searchParams?.jobTitle) queryParams.append('jobTitle', searchParams.jobTitle);
+      if (searchParams?.skills) queryParams.append('skills', searchParams.skills);
+      if (searchParams?.location) queryParams.append('location', searchParams.location);
+
+      const queryString = queryParams.toString();
+      const url = queryString ? `/api/candidates?${queryString}` : '/api/candidates';
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', response.status, errorText);
+        throw new Error(`Failed to fetch job seekers: ${response.status} ${errorText}`);
+      }
+      const result = await response.json();
+      if (result.success) {
+        setJobSeekers(result.data || []);
+      } else {
+        throw new Error(result.error || 'Failed to fetch job seekers');
+      }
+    } catch (error) {
+      console.error('Error fetching job seekers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch job seekers. Please try again.",
+        variant: "destructive"
+      });
+      setJobSeekers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getDisplayName = (seeker: JobSeeker) => {
+    if (seeker.firstName || seeker.lastName) {
+      return `${seeker.firstName || ''} ${seeker.lastName || ''}`.trim();
+    }
+    return seeker.user?.email || 'Unknown';
+  };
+  const getContactInfo = (seeker: JobSeeker) => {
+    const email = seeker.email || seeker.user?.email;
+    const phone = seeker.phone || seeker.user?.phone;
+    return { email, phone };
+  };
+
+  // Action handlers
+  const handleViewCandidate = (candidate: JobSeeker) => {
+    setViewCandidate(candidate);
+    setShowViewModal(true);
+  };
+
+  const handleEditCandidate = (candidate: JobSeeker) => {
+    setEditCandidate(candidate);
+    setShowEditModal(true);
+  };
+  const handleDeleteCandidate = async (candidateId: string) => {
+    setIsDeleting(true);
+    
+    try {
+      const response = await fetch(`/api/candidates/${candidateId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete candidate');
+      }
+
+      toast({
+        title: "Success",
+        description: "Candidate deleted successfully",
+      });
+
+      // Refresh the list
+      fetchJobSeekers();
+    } catch (error) {
+      console.error('Error deleting candidate:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete candidate. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCandidateUpdated = () => {
+    setShowEditModal(false);
+    setEditCandidate(null);
+    fetchJobSeekers();
+  };
 
   const allSelected = selectedIds.length === jobSeekers.length && jobSeekers.length > 0;
   const anySelected = selectedIds.length > 0;
@@ -70,24 +222,28 @@ export function JobSeekersTable() {
     (jobCategory === "all" || j.category === jobCategory) &&
     (jobStatus === "all" || j.status === jobStatus)
   );
-
   const handleSelectAll = () => {
     setSelectedIds(allSelected ? [] : jobSeekers.map(j => j.id));
   };
-  const handleSelect = (id: number) => {
+  const handleSelect = (id: string) => {
     setSelectedIds(ids => ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id]);
   };
-
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
-      {anySelected && (
-        <div className="flex gap-2 mb-2">
-          <Button size="sm" variant="outline" onClick={() => setShareOpen(true)} className="bg-orange-50 hover:bg-orange-100">Share Candidate</Button>
-          <Button size="sm" variant="outline" className="bg-orange-50 hover:bg-orange-100">Send Job Invitation</Button>
-          <Button size="sm" variant="outline" onClick={() => setPipelineOpen(true)} className="bg-orange-50 hover:bg-orange-100">Job Pipeline</Button>
+      {!isClient ? (
+        <div className="flex justify-center py-8">
+          <div className="text-gray-500">Loading...</div>
         </div>
-      )}
-      <Table>
+      ) : (
+        <>
+          {anySelected && (
+            <div className="flex gap-2 mb-2">
+              <Button size="sm" variant="outline" onClick={() => setShareOpen(true)} className="bg-orange-50 hover:bg-orange-100">Share Candidate</Button>
+              <Button size="sm" variant="outline" className="bg-orange-50 hover:bg-orange-100">Send Job Invitation</Button>
+              <Button size="sm" variant="outline" onClick={() => setPipelineOpen(true)} className="bg-orange-50 hover:bg-orange-100">Job Pipeline</Button>
+            </div>
+          )}
+          <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-8">
@@ -102,66 +258,125 @@ export function JobSeekersTable() {
             <TableHead>Location</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {jobSeekers.map((seeker) => (
-            <TableRow key={seeker.id}>
-              <TableCell>
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(seeker.id)}
-                  onChange={() => handleSelect(seeker.id)}
-                  className="accent-primary h-4 w-4"
-                  aria-label={`Select ${seeker.name}`}
-                />
+        </TableHeader>        <TableBody>          {loading ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-8">
+                Loading job seekers...
               </TableCell>
-              <TableCell>
-                <div className="font-medium">{seeker.name}</div>
-              </TableCell>
-              <TableCell>{seeker.jobTitle}</TableCell>
-              <TableCell>
-                <div>{seeker.email}</div>
-                <div className="text-sm text-gray-500">{seeker.phone}</div>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-1">
-                  {seeker.skills.slice(0, 2).map((skill, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                  {seeker.skills.length > 2 && (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                      +{seeker.skills.length - 2} more
-                    </span>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>{seeker.location}</TableCell>
-              <TableCell>
-                <div className="flex justify-end gap-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MessageSquare className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <CalendarIcon className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+            </TableRow>            ) : !token ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8">
+                  Please login to view job seekers.
+                </TableCell>
+              </TableRow>
+            ) : jobSeekers.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-8">
+                No job seekers found. Add a resume to get started.
               </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            jobSeekers.map((seeker) => {
+              const displayName = getDisplayName(seeker);
+              const { email, phone } = getContactInfo(seeker);
+              
+              return (
+                <TableRow key={seeker.id}>
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(seeker.id)}
+                      onChange={() => handleSelect(seeker.id)}
+                      className="accent-primary h-4 w-4"
+                      aria-label={`Select ${displayName}`}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">{displayName}</div>
+                  </TableCell>
+                  <TableCell>{seeker.jobTitle || 'Not specified'}</TableCell>
+                  <TableCell>
+                    <div>{email || 'No email'}</div>
+                    <div className="text-sm text-gray-500">{phone || 'No phone'}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {seeker.skills.slice(0, 2).map((skill, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                      {seeker.skills.length > 2 && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                          +{seeker.skills.length - 2} more
+                        </span>
+                      )}
+                      {seeker.skills.length === 0 && (
+                        <span className="text-sm text-gray-500">No skills listed</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>{seeker.location || 'Not specified'}</TableCell>                  <TableCell>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => handleViewCandidate(seeker)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => handleEditCandidate(seeker)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <CalendarIcon className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Candidate</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{getDisplayName(seeker)}"? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteCandidate(seeker.id)}
+                              disabled={isDeleting}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              {isDeleting ? "Deleting..." : "Delete"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
         </TableBody>
       </Table>
 
@@ -242,18 +457,20 @@ export function JobSeekersTable() {
                 <label className="block mb-1 font-medium">Max Visit<span className="text-red-500">*</span></label>
                 <Input type="number" min={1} value={maxVisit} onChange={e => setMaxVisit(e.target.value)} />
               </div>
-            </div>
-            <div>
+            </div>            <div>
               <div className="mb-2 font-semibold">Selected Candidates Preview:</div>
               <div className="flex flex-wrap gap-4 mb-2">
-                {selectedCandidates.map(c => (
-                  <div key={c.id} className="border rounded p-2 min-w-[180px]">
-                    <div className="font-bold">{c.name}</div>
-                    <div className="text-xs text-gray-600">{c.email}</div>
-                    <div className="text-xs text-gray-600">{c.phone}</div>
-                    <div className="text-xs text-gray-600">{c.availability || "-"}</div>
-                  </div>
-                ))}
+                {selectedCandidates.map(c => {
+                  const { email, phone } = getContactInfo(c);
+                  return (
+                    <div key={c.id} className="border rounded p-2 min-w-[180px]">
+                      <div className="font-bold">{getDisplayName(c)}</div>
+                      <div className="text-xs text-gray-600">{email}</div>
+                      <div className="text-xs text-gray-600">{phone}</div>
+                      <div className="text-xs text-gray-600">{c.availability || "-"}</div>
+                    </div>
+                  );
+                })}
               </div>
               <div className="text-xs text-gray-500 mt-2">
                 By clicking submit you will be sharing all selected Candidates with the {shareEmail || "[email]"} and share type: {shareType.length > 0 ? shareType.join(", ") : "[type]"}.
@@ -332,17 +549,19 @@ export function JobSeekersTable() {
               </Table>
             </div>
             {/* Selected candidate preview */}
-            <div>
-              <div className="mb-2 font-semibold">Selected Candidates:</div>
+            <div>              <div className="mb-2 font-semibold">Selected Candidates:</div>
               <div className="flex flex-wrap gap-4 mb-2">
-                {selectedCandidates.map(c => (
-                  <div key={c.id} className="border rounded p-2 min-w-[180px]">
-                    <div className="font-bold">{c.name}</div>
-                    <div className="text-xs text-gray-600">{c.email}</div>
-                    <div className="text-xs text-gray-600">{c.phone}</div>
-                    <div className="text-xs text-gray-600">{c.availability || "-"}</div>
-                  </div>
-                ))}
+                {selectedCandidates.map(c => {
+                  const { email, phone } = getContactInfo(c);
+                  return (
+                    <div key={c.id} className="border rounded p-2 min-w-[180px]">
+                      <div className="font-bold">{getDisplayName(c)}</div>
+                      <div className="text-xs text-gray-600">{email}</div>
+                      <div className="text-xs text-gray-600">{phone}</div>
+                      <div className="text-xs text-gray-600">{c.availability || "-"}</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             {selectedJobId && (
@@ -354,9 +573,25 @@ export function JobSeekersTable() {
               <Button type="submit">Submit</Button>
               <Button type="button" variant="outline" onClick={() => setPipelineOpen(false)}>Cancel</Button>
             </div>
-          </div>
-        </DialogContent>
+          </div>        </DialogContent>
       </Dialog>
+
+      {/* View Candidate Modal */}
+      <CandidateDetailsModal
+        open={showViewModal}
+        onOpenChange={setShowViewModal}
+        candidate={viewCandidate}
+      />
+
+      {/* Edit Candidate Modal */}
+      <EditCandidateModal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        candidate={editCandidate}
+        onSave={handleCandidateUpdated}
+      />
+        </>
+      )}
     </div>
   );
-} 
+}

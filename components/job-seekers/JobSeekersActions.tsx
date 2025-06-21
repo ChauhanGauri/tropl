@@ -4,9 +4,17 @@ import { useState } from "react";
 import { AddResumeModal } from "@/components/job-seekers/AddResumeModal";
 import { AddBulkResumesModal } from "@/components/job-seekers/AddBulkResumesModal";
 
-export function JobSeekersActions() {
+interface JobSeekersActionsProps {
+  onRefresh?: () => void;
+}
+
+export function JobSeekersActions({ onRefresh }: JobSeekersActionsProps) {
   const [showAddResume, setShowAddResume] = useState(false);
   const [showAddBulkResumes, setShowAddBulkResumes] = useState(false);
+
+  const handleResumeSaved = () => {
+    onRefresh?.();
+  };
 
   return (
     <div className="flex justify-between items-center">
@@ -32,6 +40,7 @@ export function JobSeekersActions() {
       <AddResumeModal
         open={showAddResume}
         onOpenChange={setShowAddResume}
+        onSave={handleResumeSaved}
       />
       <AddBulkResumesModal
         open={showAddBulkResumes}
@@ -39,4 +48,4 @@ export function JobSeekersActions() {
       />
     </div>
   );
-} 
+}

@@ -58,18 +58,42 @@ model Candidate {
   id                String              @id @default(auto()) @map("_id") @db.ObjectId
   userId            String              @unique @db.ObjectId
   firstName         String?
+  middleName        String?
   lastName          String?
+  dateOfBirth       DateTime?
+  gender            String?
+  country           String?
+  state             String?
+  city              String?
+  email             String?
+  phone             String?
+  linkedin          String?
+  github            String?
   jobTitle          String?
   experience        Int?                // years of experience
   expectedSalary    Float?
   currentSalary     Float?
+  noticePeriod      String?
   location          String?
+  willingToRelocate Boolean?
   skills            String[]            // Array of skills
   availability      CandidateAvailability @default(AVAILABLE)
   resumeUrl         String?
+  idDocumentUrl     String?
   profileSummary    String?
   education         Json?               // Education details as JSON
   workExperience    Json?               // Work experience as JSON
+  references        Json?               // Reference details as JSON
+  otherDocuments    Json?               // Other documents as JSON
+  // ID Information
+  aadhaarNumber     String?
+  panNumber         String?
+  uanNumber         String?
+  // Employer Info
+  employerName      String?
+  recruiterName     String?
+  recruiterEmail    String?
+  recruiterContact  String?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   

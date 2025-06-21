@@ -4,11 +4,10 @@ import { withAuth, AuthenticatedRequest } from '@/lib/middleware'
 import { createCandidateSchema, updateCandidateSchema, listQuerySchema, createApiResponse } from '@/lib/validations'
 
 // GET /api/candidates - List all candidates
-export const GET = withAuth(async (request: AuthenticatedRequest) => {
-  try {
+export const GET = withAuth(async (request: AuthenticatedRequest) => {  try {
     const { searchParams } = new URL(request.url)
     const queryParams = Object.fromEntries(searchParams)
-    const { page, limit, sortBy, sortOrder, query, filters } = listQuerySchema.parse(queryParams)
+    const { page, limit, sortBy, sortOrder, query, filters, jobTitle, skills, location } = listQuerySchema.parse(queryParams)
 
     const where: any = {}
     
@@ -21,6 +20,20 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
         { location: { contains: query, mode: 'insensitive' } },
         { user: { email: { contains: query, mode: 'insensitive' } } },
       ]
+    }
+
+    // Add specific field searches
+    if (jobTitle) {
+      where.jobTitle = { contains: jobTitle, mode: 'insensitive' }
+    }    if (skills) {
+      // Search if any skill contains the search term
+      where.skills = { 
+        hasSome: [skills]
+      };
+    }
+    
+    if (location) {
+      where.location = { contains: location, mode: 'insensitive' }
     }
 
     // Add filters
@@ -102,24 +115,63 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
     const body = await request.json()
     const validatedData = createCandidateSchema.parse(body)
 
-    const userId = request.user!.userId
+    // Check if user is a recruiter (recruiters can add candidates)
+    const user = request.user!
+    
+    let userId = user.userId
+    let candidateUserId = userId
 
-    // Check if user already has a candidate profile
-    const existingCandidate = await prisma.candidate.findUnique({
-      where: { userId },
-    })
+    // If this is a recruiter adding a candidate, create a user record for the candidate
+    if (user.role === 'RECRUITER' && validatedData.email && validatedData.email !== user.email) {
+      // Check if a user with this email already exists
+      let existingUser = await prisma.user.findUnique({
+        where: { email: validatedData.email }
+      })
 
-    if (existingCandidate) {
-      return NextResponse.json(
-        createApiResponse(false, null, '', 'Candidate profile already exists'),
-        { status: 400 }
-      )
+      if (!existingUser) {
+        // Create a new user record for the candidate
+        existingUser = await prisma.user.create({
+          data: {
+            email: validatedData.email,
+            phone: validatedData.phone,
+            name: `${validatedData.firstName || ''} ${validatedData.lastName || ''}`.trim() || undefined,
+            role: 'CANDIDATE',
+            verified: false,
+          }
+        })
+      }
+
+      candidateUserId = existingUser.id
+
+      // Check if this user already has a candidate profile
+      const existingCandidate = await prisma.candidate.findUnique({
+        where: { userId: candidateUserId },
+      })
+
+      if (existingCandidate) {
+        return NextResponse.json(
+          createApiResponse(false, null, '', 'A candidate profile already exists for this email'),
+          { status: 400 }
+        )
+      }
+    } else {
+      // User is creating their own candidate profile
+      const existingCandidate = await prisma.candidate.findUnique({
+        where: { userId },
+      })
+
+      if (existingCandidate) {
+        return NextResponse.json(
+          createApiResponse(false, null, '', 'Candidate profile already exists'),
+          { status: 400 }
+        )
+      }
     }    // Create candidate profile
     const candidate = await prisma.candidate.create({
       data: {
         ...validatedData,
-        userId,
-        skills: validatedData.skills,
+        userId: candidateUserId,
+        skills: validatedData.skills || [],
         education: validatedData.education,
         workExperience: validatedData.workExperience,
       },
