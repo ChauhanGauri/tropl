@@ -19,8 +19,16 @@ const dummyMessages = [
   },
 ];
 
+type Message = {
+  id: number;
+  sender: string;
+  subject: string;
+  content: string;
+  date: string;
+};
+
 export default function MessagesPage() {
-  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [newMessage, setNewMessage] = useState({ subject: "", content: "" });
 
   return (
