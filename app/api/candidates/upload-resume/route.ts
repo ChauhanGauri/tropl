@@ -73,6 +73,7 @@ export const POST = async (request: NextRequest) => {
         fileSize: file.size,
         mimeType: file.type,
         status: 'COMPLETED',
+        uploadedBy: "anonymous",
       },
     });
 
