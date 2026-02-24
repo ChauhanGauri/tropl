@@ -13,15 +13,16 @@ export function RootLayoutWrapper({
   const pathname = usePathname();
   const isRecruiterRoute = pathname?.startsWith('/recruiter');
   const isRecruiterLogin = pathname === '/recruiter/login';
+  const isAdminRoute = pathname?.startsWith('/admin');
 
   return (
     <AuthProvider>
       <div className="min-h-screen flex flex-col">
-        {(!isRecruiterRoute || isRecruiterLogin) && <Navbar />}
+        {(!isRecruiterRoute && !isAdminRoute) || isRecruiterLogin ? <Navbar /> : null}
         <main className="flex-1">
           {children}
         </main>
-        {!isRecruiterRoute && <Footer />}
+        {!isRecruiterRoute && !isAdminRoute && <Footer />}
       </div>
     </AuthProvider>
   );
