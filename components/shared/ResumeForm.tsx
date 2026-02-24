@@ -411,13 +411,7 @@ export function ResumeForm({
       return;
     }
 
-    if (!token) {
-      setUploadStatus({
-        status: 'error',
-        message: 'Please log in to save your resume'
-      });
-      return;
-    }
+
 
     const validationResult = validateRequiredFields();
     if (validationResult.missingFields.length > 0) {
@@ -701,13 +695,7 @@ export function ResumeForm({
       return;
     }
 
-    if (!token) {
-      setUploadStatus({
-        status: 'error',
-        message: 'Please log in to upload your resume'
-      });
-      return;
-    }
+
 
     // Clear any existing uploaded URL if user is selecting a new file
     if (uploadedResumeUrl) {

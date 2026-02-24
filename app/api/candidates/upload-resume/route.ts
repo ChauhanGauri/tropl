@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+// import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
 import { createApiResponse } from '@/lib/validations';
 import { uploadFileToSupabase, generateFilePath } from '@/lib/supabase';
 
 // POST /api/candidates/upload-resume - Upload and save resume file
-export const POST = withAuth(async (request: AuthenticatedRequest) => {
+export const POST = async (request: NextRequest) => {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -17,17 +17,7 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
       );
     }
 
-    const userId = request.user!.userId;
-    console.log('Upload request - userId:', userId, 'type:', typeof userId);
-
-    // Validate userId format (MongoDB ObjectId should be 24 hex characters)
-    if (!userId || typeof userId !== 'string' || !/^[0-9a-fA-F]{24}$/.test(userId)) {
-      console.error('Invalid userId format:', userId);
-      return NextResponse.json(
-        createApiResponse(false, null, '', 'Invalid user authentication'),
-        { status: 401 }
-      );
-    }
+    // Remove userId validation and assignment
 
     // Validate file type
     const allowedTypes = [
@@ -56,8 +46,8 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
       );
     }
 
-    // Generate unique file path for Supabase storage
-    const filePath = generateFilePath(userId, file.name);
+    // Generate unique file path for Supabase storage (no userId)
+    const filePath = generateFilePath('anonymous', file.name);
     
     // Upload file to Supabase storage
     const { url: publicUrl, error: uploadError } = await uploadFileToSupabase(
@@ -74,7 +64,7 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
       );
     }
 
-    // Save file record to database
+    // Save file record to database (no userId association)
     const resumeFile = await prisma.resumeFile.create({
       data: {
         originalName: file.name,
@@ -82,22 +72,9 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
         filePath: publicUrl,
         fileSize: file.size,
         mimeType: file.type,
-        uploadedBy: userId,
         status: 'COMPLETED',
       },
     });
-
-    // Update candidate record with resume URL if candidate exists
-    const existingCandidate = await prisma.candidate.findUnique({
-      where: { userId },
-    });
-
-    if (existingCandidate) {
-      await prisma.candidate.update({
-        where: { userId },
-        data: { resumeUrl: publicUrl },
-      });
-    }
 
     return NextResponse.json(
       createApiResponse(
@@ -121,4 +98,6 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
       { status: 500 }
     );
   }
-});
+
+
+}
